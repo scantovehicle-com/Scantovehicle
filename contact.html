@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b63ce">
+<title>QR Contact</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#eef5ff,#f7f9fc);color:#172033;padding:18px}.card{width:100%;max-width:430px;margin:0 auto;background:#fff;border-radius:24px;padding:26px 20px 22px;box-shadow:0 12px 35px rgba(15,40,80,.14);border:1px solid #e5ebf3}h1{text-align:center;font-size:25px;line-height:1.2;margin:0}.subtitle{text-align:center;color:#667085;font-size:14px;margin:9px 0 22px}.contact{border:1px solid #e6eaf0;border-radius:17px;padding:15px;margin:13px 0;background:#fafbfd}.contact-title{font-size:14px;font-weight:800;letter-spacing:.3px;margin-bottom:10px}.btn{display:flex;align-items:center;justify-content:center;min-height:58px;color:#fff;text-decoration:none;border-radius:13px;font-size:18px;font-weight:800;box-shadow:0 5px 12px rgba(0,0,0,.10)}.first-btn{background:#0b63ce}.emergency-btn{background:#c62828}.privacy{margin:18px 4px 0;padding:11px 12px;border-radius:12px;background:#f1f5f9;color:#64748b;font-size:12px;line-height:1.45;text-align:center}.status{text-align:center;color:#667085;font-size:14px;padding:24px 4px}.retry{display:none;margin:12px auto 0;border:0;border-radius:12px;padding:12px 18px;background:#0b63ce;color:#fff;font-weight:800}.footer{text-align:center;margin-top:15px;color:#98a2b3;font-size:11px}
+</style></head><body><main class="card"><div id="app"><div class="status">Activating QR…<br><small>Please wait a moment.</small></div><button id="retry" class="retry" onclick="loadData()">Try Again</button></div></main>
+<script>
+const id=new URLSearchParams(location.search).get('id');
+let tries=0;
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));}
+function render(d){
+ let blocks='';
+ (d.contacts||[]).forEach((c,i)=>blocks+=`<section class="contact"><div class="contact-title">${esc(d.contactLabel||'CONTACT')} ${i+1}</div><a class="btn first-btn" href="tel:${encodeURIComponent(c)}">CALL ${esc(d.contactLabel||'CONTACT')} ${i+1}</a></section>`);
+ (d.emergency||[]).forEach((c,i)=>blocks+=`<section class="contact"><div class="contact-title">EMERGENCY CONTACT ${i+1}</div><a class="btn emergency-btn" href="tel:${encodeURIComponent(c)}">CALL EMERGENCY CONTACT ${i+1}</a></section>`);
+ document.getElementById('app').innerHTML=`<h1>${esc(d.title||'QR Contact')}</h1><div class="subtitle">${esc(d.subtitle||'Contact')}</div>${blocks}<div class="privacy">Phone numbers are hidden for privacy. Tap a button to place the call.</div><div class="footer">Scan to contact</div>`;
+}
+async function loadData(){
+ if(!id){document.getElementById('app').innerHTML='<div class="status">Invalid QR code.</div>';return;}
+ tries++;
+ try{
+  const r=await fetch('./qr_data/'+encodeURIComponent(id)+'.json?attempt='+Date.now(),{cache:'no-store'});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  render(await r.json());
+ }catch(e){
+  if(tries<21){document.querySelector('.status').innerHTML='Activating QR…<br><small>GitHub Pages is still publishing this QR. Retrying automatically…</small>';setTimeout(loadData,1500);}
+  else{document.querySelector('.status').innerHTML='QR is not active yet.<br><small>Please try again in a minute.</small>';document.getElementById('retry').style.display='block';}
+ }
+}
+loadData();
+</script></body></html>
